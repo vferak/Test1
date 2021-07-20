@@ -1,0 +1,1 @@
+Před spuštěním je potřeba provést composer install!
