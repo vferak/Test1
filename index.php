@@ -1,14 +1,23 @@
 <?php
 
-include "Car.php";
-include "CarException.php";
+use Trayto\CarException;
 
-$currentOilInTank = 45;
+include "vendor/autoload.php";
+
 $routeLength = 200;
 
 try {
-    $car = new Car($currentOilInTank);
-    $routeLog = $car->go($routeLength);
+    $oilCar = \Trayto\OilCarFactory::create(50);
+    $routeLog = $oilCar->go($routeLength);
+    echo "OilCar:\n" . $routeLog;
+
+    $electricCar = \Trayto\ElectricCarFactory::create(20);
+    $routeLog = $electricCar->go($routeLength);
+    echo "ElectricCar:\n" . $routeLog;
+
+    $hybridCar = \Trayto\HybridCarFactory::create(30);
+    $routeLog = $hybridCar->go($routeLength);
+    echo "HybridCar:\n" . $routeLog;
 
     echo $routeLog;
 } catch (CarException $exception) {

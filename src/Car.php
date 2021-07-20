@@ -1,11 +1,11 @@
 <?php
 
+namespace Trayto;
+
+use Trayto\EnergySource\EnergySourceInterface;
 
 class Car
 {
-    const MIN_TANK_VOLUME = 0;
-    const MAX_TANK_VOLUME = 60;
-
     const MIN_SPEED = 0;
     const MAX_SPEED = 5;
 
@@ -13,22 +13,17 @@ class Car
 
     private int $currentSpeed;
 
-    private int $currentOilInTank;
+    private EnergySourceInterface $energySource;
 
     private int $distanceDriven;
 
     /**
      * Car constructor.
-     * @param int $oilInTank Sets the current amount of oil in tank.
-     * @throws CarException
+     * @param EnergySourceInterface $energySource Energy source for the car.
      */
-    public function __construct(int $oilInTank)
+    public function __construct(EnergySourceInterface $energySource)
     {
-        if ($oilInTank < self::MIN_TANK_VOLUME || $oilInTank > self::MAX_TANK_VOLUME) {
-            throw new CarException("Amount of oil in tank in the initialization of the car is out of boundaries! Set it between " . self::MIN_TANK_VOLUME . " and " . self::MAX_TANK_VOLUME . ".");
-        }
-
-        $this->currentOilInTank = $oilInTank;
+        $this->energySource = $energySource;
 
         $this->currentSpeed = self::MIN_SPEED;
         $this->distanceDriven = self::STARTING_DISTANCE;
@@ -51,10 +46,10 @@ class Car
         $routeLog = $this->logCurrentState();
 
         while ($currentlyDriven < $distance) {
-            if ($this->currentOilInTank == self::MIN_TANK_VOLUME) {
+            if ($this->energySource->isEmpty()) {
                 $this->stop();
-                $this->refillOil();
-                $routeLog .= $this->logOilRefill();
+                $this->energySource->refill();
+                $routeLog .= $this->logEnergyRefill();
             }
 
             $this->addSpeed();
@@ -119,15 +114,16 @@ class Car
     }
 
     /**
-     * Uses oil based on currentSpeed. If currentSpeed is higher than currentOil, sets the speed to use the rest of the oil.
+     * Uses energy based on currentSpeed. If currentSpeed is higher than currentEnergyAmount, sets the speed to use the rest of the energy.
      */
-    private function useOil(): void
+    private function useEnergy(): void
     {
-        if ($this->currentOilInTank < $this->currentSpeed) {
-            $this->setSpeed($this->currentOilInTank);
+        $currentSourceAmount = $this->energySource->getCurrentSourceAmount();
+        if ($currentSourceAmount < $this->currentSpeed) {
+            $this->setSpeed($currentSourceAmount);
         }
 
-        $this->currentOilInTank -= $this->currentSpeed;
+        $this->energySource->useEnergy($this->currentSpeed);
     }
 
     /**
@@ -140,16 +136,8 @@ class Car
             return 0;
         }
 
-        $this->useOil();
+        $this->useEnergy();
         return $this->currentSpeed;
-    }
-
-    /**
-     * Refills oil in the tank by a random amount between MIN and MAX volume of the tank.
-     */
-    private function refillOil(): void
-    {
-        $this->currentOilInTank = rand(self::MIN_TANK_VOLUME, self::MAX_TANK_VOLUME);
     }
 
     /**
@@ -158,15 +146,15 @@ class Car
      */
     private function logCurrentState(): string
     {
-        return "Car currently traveled for " . $this->distanceDriven . " km, has " . $this->currentOilInTank . " l of oil in tank and went in speed " . $this->currentSpeed . ".\n";
+        return "Car currently traveled for " . $this->distanceDriven . " km, has " . $this->energySource->getCurrentSourceAmount() . " amount of energy and went in speed " . $this->currentSpeed . ".\n";
     }
 
     /**
-     * Returns information about oil refill.
+     * Returns information about energy refill.
      * @return string
      */
-    private function logOilRefill(): string
+    private function logEnergyRefill(): string
     {
-        return "Oil was refilled! Car has currently " . $this->currentOilInTank . " l of oil in tank.\n";
+        return "Energy was refilled! Car has currently " . $this->energySource->getCurrentSourceAmount() . " amount of energy.\n";
     }
 }
